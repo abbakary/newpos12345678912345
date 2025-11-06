@@ -731,4 +731,84 @@ function applyExtractionToOrder(extractionId) {
   });
 }
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const completeBtn = document.getElementById('completeOrderBtn');
+  if (!completeBtn) return;
+
+  const orderStarted = {{ order.started_at|default:'None'|yesno:'true,false' }}; // placeholder, will compute below
+  const startedAtStr = '{{ order.started_at.isoformat if order.started_at else "" }}';
+  const estimatedDuration = {{ order.estimated_duration|default:'null' }};
+
+  function redirectToSignature(){
+    // Redirect to order detail page where signature/completion flow exists
+    window.location.href = '{% url "tracker:order_detail" pk=order.id %}';
+  }
+
+  completeBtn.addEventListener('click', function(e){
+    // If not a service order or no ETA configured, go straight to signature
+    const orderType = '{{ order.type|default:"" }}';
+    if (orderType !== 'service' || !estimatedDuration) {
+      redirectToSignature();
+      return;
+    }
+
+    if (!startedAtStr) { redirectToSignature(); return; }
+    const startedAt = new Date(startedAtStr);
+    const now = new Date();
+    const elapsedMinutes = Math.floor((now - startedAt) / 60000);
+
+    if (elapsedMinutes <= (Number(estimatedDuration) || 0)){
+      // Not exceeded
+      redirectToSignature();
+      return;
+    }
+
+    // Exceeded ETA -> show modal to collect reason
+    const overrunModalEl = document.getElementById('overrunReasonModal');
+    const overrunModal = new bootstrap.Modal(overrunModalEl);
+    overrunModal.show();
+  });
+
+  // Save reason handler
+  const saveBtn = document.getElementById('saveOverrunReasonBtn');
+  if (saveBtn){
+    saveBtn.addEventListener('click', function(){
+      const reason = document.getElementById('overrunReasonInput').value.trim();
+      const errEl = document.getElementById('overrunReasonError');
+      errEl.style.display = 'none';
+      if (!reason){ errEl.textContent = 'Please enter a reason for the delay.'; errEl.style.display = ''; return; }
+
+      // Post to API to save reason, then redirect to signature page
+      fetch('{% url "tracker:api_report_overrun" order_id=order.id %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ reason: reason })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success){
+          // close modal then redirect
+          const modalEl = document.getElementById('overrunReasonModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          redirectToSignature();
+        } else {
+          errEl.textContent = data.error || 'Failed to save reason'; errEl.style.display = '';
+        }
+      })
+      .catch(err => {
+        console.error('Error saving overrun reason', err);
+        errEl.textContent = 'Server error saving reason'; errEl.style.display = '';
+      });
+    });
+  }
+});
+</script>
+
 {% endblock %}

@@ -1011,7 +1011,7 @@ function uploadDocument() {
   fileInput.disabled = true;
   progressContainer.style.display = 'block';
 
-  fetch('{% url "tracker:upload_document" %}', {
+  fetch('{% url "tracker:api_documents_upload" %}', {
     method: 'POST',
     headers: {
       'X-CSRFToken': '{{ csrf_token }}'

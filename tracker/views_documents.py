@@ -459,14 +459,29 @@ def api_create_invoice_from_extraction(request):
                 items = extraction.items.all()
                 if items:
                     for item in items:
+                        unit_price = item.rate or Decimal('0')
+                        quantity = item.qty or Decimal('1')
+
+                        # Determine tax rate: use item VAT if available, else invoice rate
+                        item_tax_rate = Decimal('0')
+                        if item.vat and item.value:
+                            # Calculate tax rate from VAT amount: tax_rate = (vat / value) * 100
+                            try:
+                                item_tax_rate = (item.vat / item.value) * 100
+                            except Exception:
+                                item_tax_rate = invoice.tax_rate or Decimal('0')
+                        else:
+                            item_tax_rate = invoice.tax_rate or Decimal('0')
+
                         InvoiceLineItem.objects.create(
                             invoice=invoice,
+                            code=item.code or '',
                             description=item.description or '',
                             item_type='custom',
-                            quantity=item.qty or 1,
+                            quantity=quantity,
                             unit=item.unit or 'PCS',
-                            unit_price=item.rate or 0,
-                            tax_rate=invoice.tax_rate,
+                            unit_price=unit_price,
+                            tax_rate=item_tax_rate,
                         )
                 elif extraction.extracted_amount or extraction.gross_value:
                     # Create a single line item if we have amount but no itemized details

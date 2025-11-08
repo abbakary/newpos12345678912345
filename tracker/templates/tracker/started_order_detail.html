@@ -344,10 +344,19 @@
 
           <script>
             // Started order upload button handler with improved error handling
-            (function(){
+            document.addEventListener('DOMContentLoaded', function(){
               const uploadBtn = document.getElementById('uploadInvoiceBtn');
               const modalEl = document.getElementById('uploadInvoiceModal');
               const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+              if (!uploadBtn) {
+                console.error('uploadInvoiceBtn element not found');
+                return;
+              }
+              if (!modalEl) {
+                console.error('uploadInvoiceModal element not found');
+                return;
+              }
               const fileInput = document.getElementById('startedOrderInvoiceFile');
               const startedUploadBtn = document.getElementById('startedUploadBtn');
               const startedUploadCancel = document.getElementById('startedUploadCancel');

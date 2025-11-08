@@ -343,10 +343,6 @@ def started_order_detail(request, order_id):
         if action == 'create_invoice_manual':
             # Handle manual invoice creation from started order detail
             try:
-                from django.http import JsonResponse
-                from .models import Invoice, InvoiceLineItem
-                from decimal import Decimal
-
                 invoice_number = request.POST.get('invoice_number', '').strip() or f"MANUAL-{timezone.now().strftime('%Y%m%d%H%M%S')}"
                 invoice_date_str = request.POST.get('invoice_date', '')
                 subtotal = request.POST.get('subtotal', '0')

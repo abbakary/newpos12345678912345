@@ -725,6 +725,13 @@
               function populateManualFormWithExtracted(data){
                 const header = data.header || {};
                 if (manualForm){
+                  // Populate customer fields
+                  manualForm.querySelector('input[name="customer_name"]').value = header.customer_name || '';
+                  manualForm.querySelector('input[name="customer_phone"]').value = header.phone || '';
+                  manualForm.querySelector('input[name="customer_email"]').value = header.email || '';
+                  manualForm.querySelector('input[name="customer_address"]').value = header.address || '';
+
+                  // Populate invoice fields
                   manualForm.querySelector('input[name="invoice_number"]').value = header.invoice_no || '';
                   manualForm.querySelector('input[name="invoice_date"]').value = header.date || '';
                   manualForm.querySelector('input[name="subtotal"]').value = header.subtotal || '';

@@ -1361,7 +1361,7 @@ class InvoiceForm(forms.ModelForm):
                 'placeholder': 'Sales person name',
                 'id': 'invoice_attended_by_field'
             }),
-            'kind_attention': forms.TextInput(attrs={{
+            'kind_attention': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Customer contact person',
                 'id': 'invoice_kind_attention_field'

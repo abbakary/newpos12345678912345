@@ -811,17 +811,17 @@ def parse_invoice_data(text: str) -> dict:
                     # If we have multiple remaining numbers, try to identify qty and rate
                     if len(remaining_numbers) == 2:
                         # Could be qty + value, or rate + value
-                        if float_numbers[0] < 100 and float_numbers[0] == int(float_numbers[0]):
-                            qty = int(float_numbers[0])
-                            value = float_numbers[1]
-                        elif float_numbers[1] < 100 and float_numbers[1] == int(float_numbers[1]):
-                            qty = int(float_numbers[1])
-                            value = float_numbers[0]
-                    elif len(float_numbers) == 3:
+                        if remaining_numbers[0] < 100 and remaining_numbers[0] == int(remaining_numbers[0]):
+                            qty = int(remaining_numbers[0])
+                            value = remaining_numbers[1]
+                        elif remaining_numbers[1] < 100 and remaining_numbers[1] == int(remaining_numbers[1]):
+                            qty = int(remaining_numbers[1])
+                            value = remaining_numbers[0]
+                    elif len(remaining_numbers) == 3:
                         # Could be qty + rate + value
-                        max_val = max(float_numbers)
-                        min_val = min(float_numbers)
-                        mid_val = sum(float_numbers) - max_val - min_val
+                        max_val = max(remaining_numbers)
+                        min_val = min(remaining_numbers)
+                        mid_val = sum(remaining_numbers) - max_val - min_val
 
                         if min_val < 100 and min_val == int(min_val):
                             qty = int(min_val)
@@ -831,6 +831,8 @@ def parse_invoice_data(text: str) -> dict:
 
                     # Apply to last item if it exists
                     if items:
+                        if code and not items[-1].get('code'):
+                            items[-1]['code'] = code
                         if qty and not items[-1].get('qty'):
                             items[-1]['qty'] = qty
                         if rate and not items[-1].get('rate'):

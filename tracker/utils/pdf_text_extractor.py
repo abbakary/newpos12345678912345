@@ -280,9 +280,21 @@ def extract_from_bytes(file_bytes, filename: str = '') -> dict:
     if text:
         try:
             parsed = parse_invoice_data(text)
+            # Prepare header with all extracted fields
+            header = {
+                'invoice_no': parsed.get('invoice_no'),
+                'date': parsed.get('date'),
+                'customer_name': parsed.get('customer_name'),
+                'phone': parsed.get('phone'),
+                'email': parsed.get('email'),
+                'address': parsed.get('address'),
+                'subtotal': parsed.get('subtotal'),
+                'tax': parsed.get('tax'),
+                'total': parsed.get('total'),
+            }
             return {
                 'success': True,
-                'header': parsed,
+                'header': header,
                 'items': parsed.get('items', []),
                 'raw_text': text,
                 'ocr_available': False,  # Using text extraction, not OCR

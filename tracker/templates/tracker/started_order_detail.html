@@ -734,7 +734,7 @@
                     // Extraction successful - populate and show form
                     extractedInvoiceData = extractData;
                     populateManualFormWithExtracted(extractData);
-                    showExtractedDataPreview(extractData.header);
+                    showExtractedDataPreview(extractData.header, extractData.items);
                     uploadProgress.style.display = 'none';
                     uploadProgressBar.style.width = '0%';
 

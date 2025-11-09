@@ -755,10 +755,40 @@
                 });
               }
 
-              function showExtractedDataPreview(header){
+              function showExtractedDataPreview(header, items){
+                // Customer Information
+                document.getElementById('previewCustomerName').textContent = header.customer_name || '-';
+                document.getElementById('previewCustomerPhone').textContent = header.phone || '-';
+                document.getElementById('previewCustomerEmail').textContent = header.email || '-';
+                document.getElementById('previewCustomerAddress').textContent = header.address || '-';
+
+                // Invoice Information
                 document.getElementById('previewInvoiceNo').textContent = header.invoice_no || '-';
                 document.getElementById('previewInvoiceDate').textContent = header.date || '-';
-                document.getElementById('previewTotal').textContent = header.total || header.subtotal || '-';
+
+                // Line Items
+                const itemsContainer = document.getElementById('previewLineItems');
+                if (items && items.length > 0) {
+                  itemsContainer.innerHTML = items.map((item, idx) => `
+                    <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                      <div>
+                        <strong>${item.description || '-'}</strong><br>
+                        <small class="text-muted">Qty: ${item.qty || 1}</small>
+                      </div>
+                      <div class="text-end">
+                        <strong>${(item.value || 0).toLocaleString()}</strong>
+                      </div>
+                    </div>
+                  `).join('');
+                } else {
+                  itemsContainer.innerHTML = '<p class="text-muted">-</p>';
+                }
+
+                // Payment Information
+                document.getElementById('previewSubtotal').textContent = (header.subtotal || 0).toLocaleString();
+                document.getElementById('previewTax').textContent = (header.tax || 0).toLocaleString();
+                document.getElementById('previewTotal').textContent = (header.total || 0).toLocaleString();
+
                 uploadedInvoicePreview.style.display = 'block';
               }
 

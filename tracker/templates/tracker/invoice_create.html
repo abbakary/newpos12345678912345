@@ -664,11 +664,55 @@
                         const d = data.data;
                         // Populate modal with extracted header data
                         const hdr = d.header || {};
-                        extractedHeader.innerHTML = `<div><strong>Invoice No:</strong> ${hdr.invoice_no || hdr.code_no || ''} &nbsp; <strong>Date:</strong> ${hdr.date || ''}</div><div><strong>Customer:</strong> ${hdr.customer_name || ''}</div><div><strong>Net:</strong> ${hdr.subtotal || ''} TSH &nbsp; <strong>VAT:</strong> ${hdr.tax || ''} TSH &nbsp; <strong>Gross:</strong> ${hdr.total || ''} TSH</div>`;
+                        const invoiceNo = hdr.invoice_no || hdr.code_no || 'N/A';
+                        const date = hdr.date || 'N/A';
+                        const customer = hdr.customer_name || 'N/A';
+                        const phone = hdr.phone || '';
+                        const email = hdr.email || '';
+                        const address = hdr.address || '';
+                        const subtotal = hdr.subtotal ? parseFloat(hdr.subtotal).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00';
+                        const tax = hdr.tax ? parseFloat(hdr.tax).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00';
+                        const total = hdr.total ? parseFloat(hdr.total).toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00';
+                        const reference = hdr.reference || '';
+                        const attendedBy = hdr.attended_by || '';
+                        const kindAttention = hdr.kind_attention || '';
+                        const paymentMethod = hdr.payment_method || '';
+                        const deliveryTerms = hdr.delivery_terms || '';
+
+                        let headerHtml = `<div class="mb-3"><strong>Invoice Information</strong></div>
+                          <div class="row mb-2">
+                            <div class="col-md-6"><strong>Invoice No:</strong> ${invoiceNo}</div>
+                            <div class="col-md-6"><strong>Date:</strong> ${date}</div>
+                          </div>
+                          <div class="row mb-2">
+                            <div class="col-md-6"><strong>Reference:</strong> ${reference || 'N/A'}</div>
+                            <div class="col-md-6"><strong>Payment Method:</strong> ${paymentMethod || 'N/A'}</div>
+                          </div>
+                          <div class="row mb-3">
+                            <div class="col-12"><strong>Delivery Terms:</strong> ${deliveryTerms || 'N/A'}</div>
+                          </div>
+                          <div class="mb-3"><strong>Customer Information</strong></div>
+                          <div class="row mb-2">
+                            <div class="col-12"><strong>Name:</strong> ${customer}</div>
+                          </div>
+                          ${phone ? '<div class="row mb-2"><div class="col-12"><strong>Phone:</strong> ' + phone + '</div></div>' : ''}
+                          ${email ? '<div class="row mb-2"><div class="col-12"><strong>Email:</strong> ' + email + '</div></div>' : ''}
+                          ${address ? '<div class="row mb-3"><div class="col-12"><strong>Address:</strong> ' + address + '</div></div>' : ''}
+                          ${attendedBy ? '<div class="row mb-2"><div class="col-12"><strong>Attended By:</strong> ' + attendedBy + '</div></div>' : ''}
+                          ${kindAttention ? '<div class="row mb-3"><div class="col-12"><strong>Kind Attention:</strong> ' + kindAttention + '</div></div>' : ''}
+                          <div class="mb-3"><strong>Amounts</strong></div>
+                          <div class="row mb-2">
+                            <div class="col-md-4"><strong>Subtotal:</strong> ${subtotal} TSH</div>
+                            <div class="col-md-4"><strong>VAT/Tax:</strong> ${tax} TSH</div>
+                            <div class="col-md-4"><strong>Total:</strong> ${total} TSH</div>
+                          </div>`;
+
+                        extractedHeader.innerHTML = headerHtml;
                         extractedItemsBody.innerHTML = '';
                         (d.items || []).forEach(it=>{
                           const tr = document.createElement('tr');
-                          tr.innerHTML = `<td>${it.code||''}</td><td>${it.description||''}</td><td>${it.qty||''}</td><td>${it.value||''}</td>`;
+                          const itemValue = it.value ? parseFloat(it.value).toLocaleString('en-US', {minimumFractionDigits: 2}) : '';
+                          tr.innerHTML = `<td>${it.code||''}</td><td>${it.description||''}</td><td>${it.qty||''}</td><td>${itemValue}</td>`;
                           extractedItemsBody.appendChild(tr);
                         });
                         extractedRaw.textContent = d.raw_text ? d.raw_text.substring(0,2000) : '';

@@ -650,12 +650,13 @@
                       // If extraction requires manual review, data.data contains parsed fields
                       if (data && data.data){
                         const d = data.data;
-                        // Populate modal
-                        extractedHeader.innerHTML = `<div><strong>Invoice No:</strong> ${d.header.invoice_no || ''} &nbsp; <strong>Date:</strong> ${d.header.date || ''}</div><div><strong>Customer:</strong> ${d.header.customer_name || ''}</div><div><strong>Net:</strong> ${d.header.net_value || ''} &nbsp; <strong>VAT:</strong> ${d.header.vat || ''} &nbsp; <strong>Gross:</strong> ${d.header.gross_value || ''}</div>`;
+                        // Populate modal with extracted header data
+                        const hdr = d.header || {};
+                        extractedHeader.innerHTML = `<div><strong>Invoice No:</strong> ${hdr.invoice_no || hdr.code_no || ''} &nbsp; <strong>Date:</strong> ${hdr.date || ''}</div><div><strong>Customer:</strong> ${hdr.customer_name || ''}</div><div><strong>Net:</strong> ${hdr.subtotal || ''} TSH &nbsp; <strong>VAT:</strong> ${hdr.tax || ''} TSH &nbsp; <strong>Gross:</strong> ${hdr.total || ''} TSH</div>`;
                         extractedItemsBody.innerHTML = '';
                         (d.items || []).forEach(it=>{
                           const tr = document.createElement('tr');
-                          tr.innerHTML = `<td>${it.item_code||''}</td><td>${it.description||''}</td><td>${it.qty||''}</td><td>${it.value||''}</td>`;
+                          tr.innerHTML = `<td>${it.code||''}</td><td>${it.description||''}</td><td>${it.qty||''}</td><td>${it.value||''}</td>`;
                           extractedItemsBody.appendChild(tr);
                         });
                         extractedRaw.textContent = d.raw_text ? d.raw_text.substring(0,2000) : '';

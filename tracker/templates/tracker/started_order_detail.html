@@ -1058,6 +1058,10 @@
                   }
 
                   const fd = new FormData(this);
+                  // Include the originally uploaded file so backend can store it on the Invoice
+                  if (typeof fileInput !== 'undefined' && fileInput && fileInput.files && fileInput.files[0]){
+                    fd.append('file', fileInput.files[0]);
+                  }
 
                   // Show loading state
                   const submitBtn = this.querySelector('button[type="submit"]');

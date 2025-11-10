@@ -77,6 +77,12 @@
             <p class="mb-0">{{ invoice.customer.email }}</p>
           </div>
           {% endif %}
+          {% if invoice.customer.address %}
+          <div class="mt-2">
+            <label class="form-label mb-1"><small>Address</small></label>
+            <p class="mb-0">{{ invoice.customer.address }}</p>
+          </div>
+          {% endif %}
           {% if invoice.vehicle %}
           <div class="mt-3 pt-3 border-top">
             <label class="form-label mb-1"><small>Vehicle</small></label>
@@ -318,10 +324,17 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="add_line_item">
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">{{ line_item_form.description.label }}</label>
-            {{ line_item_form.description }}
-            {% if line_item_form.description.errors %}<div class="text-danger f-12">{{ line_item_form.description.errors|striptags }}</div>{% endif %}
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">{{ line_item_form.code.label }}</label>
+              {{ line_item_form.code }}
+              {% if line_item_form.code.errors %}<div class="text-danger f-12">{{ line_item_form.code.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">{{ line_item_form.description.label }}</label>
+              {{ line_item_form.description }}
+              {% if line_item_form.description.errors %}<div class="text-danger f-12">{{ line_item_form.description.errors|striptags }}</div>{% endif %}
+            </div>
           </div>
 
           <div class="row g-3">

@@ -1444,8 +1444,9 @@ class InvoiceForm(forms.ModelForm):
 class InvoiceLineItemForm(forms.ModelForm):
     class Meta:
         model = InvoiceLineItem
-        fields = ['description', 'item_type', 'inventory_item', 'quantity', 'unit', 'unit_price', 'tax_rate']
+        fields = ['code', 'description', 'item_type', 'inventory_item', 'quantity', 'unit', 'unit_price', 'tax_rate']
         widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Item code'}),
             'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Item description'}),
             'item_type': forms.Select(attrs={'class': 'form-select'}),
             'inventory_item': forms.Select(attrs={'class': 'form-select'}),

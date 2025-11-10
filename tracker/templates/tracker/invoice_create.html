@@ -788,9 +788,8 @@
                     if (!d || !d.header) return;
                     const hdr = d.header;
                     const f = document.querySelector('form');
+                    if (!f) return;
 
-                    // Comprehensive mapping of extracted fields to form field names
-                    // Maps extraction field names to form input names
                     const map = {
                       'customer_full_name': hdr.customer_name || '',
                       'customer_phone': hdr.phone || '',
@@ -799,28 +798,23 @@
                       'reference': hdr.reference || hdr.invoice_no || hdr.code_no || '',
                       'attended_by': hdr.attended_by || '',
                       'kind_attention': hdr.kind_attention || '',
-                      'remarks': hdr.remarks || '',
                       'notes': (hdr.notes || hdr.remarks || ''),
-                      'payment_method': hdr.payment_method || '',
-                      'delivery_terms': hdr.delivery_terms || ''
+                      'terms': hdr.delivery_terms || ''
                     };
 
-                    // Apply mapped values to form fields
                     Object.keys(map).forEach(k=>{
                       const el = f.querySelector('[name="'+k+'"]');
-                      if (el) {
+                      if (el && map[k]) {
                         el.value = map[k];
                         el.dispatchEvent(new Event('input', {bubbles: true}));
                         el.dispatchEvent(new Event('change', {bubbles: true}));
                       }
                     });
 
-                    // Handle invoice_date - convert from extracted date format (dd/mm/yyyy) to form format (YYYY-MM-DD)
                     if (hdr.date) {
                       const dateEl = f.querySelector('[name="invoice_date"]');
                       if (dateEl) {
                         let formattedDate = hdr.date;
-                        // If date looks like dd/mm/yyyy, convert to yyyy-mm-dd
                         const dateMatch = String(hdr.date).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
                         if (dateMatch) {
                           formattedDate = dateMatch[3] + '-' + String(dateMatch[2]).padStart(2,'0') + '-' + String(dateMatch[1]).padStart(2,'0');
@@ -831,7 +825,6 @@
                       }
                     }
 
-                    // Handle tax_rate - try to extract percentage value
                     if (hdr.tax_rate) {
                       const taxEl = f.querySelector('[name="tax_rate"]');
                       if (taxEl) {
@@ -844,13 +837,14 @@
                       }
                     }
 
-                    // Switch back to manual mode
-                    reviewModal && reviewModal.hide();
-                    document.getElementById('mode-manual').checked=true;
-                    document.getElementById('mode-upload').checked=false;
-                    document.getElementById('uploadSection').classList.add('d-none');
+                    if (reviewModal) reviewModal.hide();
+                    const modeManual = document.getElementById('mode-manual');
+                    const modeUpload = document.getElementById('mode-upload');
+                    const uploadSection = document.getElementById('uploadSection');
+                    if (modeManual) modeManual.checked = true;
+                    if (modeUpload) modeUpload.checked = false;
+                    if (uploadSection) uploadSection.classList.add('d-none');
 
-                    // Scroll to top so user can see the applied data
                     setTimeout(function(){
                       window.scrollTo({top: 0, behavior: 'smooth'});
                     }, 100);

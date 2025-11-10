@@ -416,19 +416,24 @@ def parse_invoice_data(text: str) -> dict:
                 # Construct the address starting with P.O.BOX
                 address_parts = [f"P.O.BOX {pob_number}"]
 
-                # Collect following lines for city/country
-                for j in range(idx + 1, min(idx + 5, len(lines))):
+                # Collect following lines for city/country/additional address
+                for j in range(idx + 1, min(idx + 7, len(lines))):
                     next_line = lines[j].strip()
 
-                    # Stop at field labels
-                    if not next_line or re.match(r'^(?:Tel|Fax|Attended|Kind|Reference|PI|Code|Type|Date|Email|Phone|Del)', next_line, re.I):
+                    # Stop at empty lines or field labels
+                    if not next_line:
+                        continue
+
+                    if re.match(r'^(?:Tel|Fax|Attended|Kind|Reference|PI|Code|Type|Date|Email|Phone|Del|Customer|Cust|Ref|Invoice|Proforma)', next_line, re.I):
                         break
 
-                    # Keep location lines
-                    if re.search(r'\b(DAR|NAIROBI|KAMPALA|KIGALI|SALAAM|TANZANIA|KENYA|UGANDA|RWANDA|BURUNDI)\b', next_line, re.I):
+                    # Keep location lines - cities, countries, postal codes
+                    if re.search(r'\b(DAR|DAR-ES-SALAAM|SALAAM|NAIROBI|KAMPALA|KIGALI|MOMBASA|MOSHI|ARUSHA|DODOMA)\b', next_line, re.I):
                         address_parts.append(next_line)
-                    elif len(next_line) > 2 and (next_line.isupper() or re.match(r'^[A-Z][A-Z\s\-]*$', next_line)):
-                        # Likely an address line (all caps or capitalized)
+                    elif re.search(r'\b(TANZANIA|KENYA|UGANDA|RWANDA|BURUNDI|CONGO|MALAWI|ZAMBIA)\b', next_line, re.I):
+                        address_parts.append(next_line)
+                    elif len(next_line) > 2 and (next_line.isupper() or re.match(r'^[A-Z][A-Z\s\-\.,]*$', next_line)):
+                        # Likely an address line (all caps or title case)
                         address_parts.append(next_line)
                     elif len(next_line) < 3:  # Very short, might be separator
                         continue
@@ -441,25 +446,30 @@ def parse_invoice_data(text: str) -> dict:
                 else:
                     address = None  # Reset if too short
 
-    # Pattern 2: If P.O.BOX not found, look for explicit address patterns
+    # Pattern 2: If P.O.BOX not found, look for explicit "Address" label
     if not address:
         for idx, line in enumerate(lines):
-            # Look for "Address:" or similar label
-            if re.search(r'Address\s*[:=]?\s*', line, re.I):
-                # Extract what comes after Address label on same line or next lines
-                match = re.search(r'Address\s*[:=]?\s*([^\n]*)', line, re.I)
+            # Look for "Address:" or "Address" at end of line
+            if re.search(r'\bAddress\s*[:=]?\s*$', line, re.I) or re.search(r'\bAddress\s*[:=]\s*([^\n]+)', line, re.I):
                 address_parts = []
+
+                # Check if there's content after "Address:" on the same line
+                match = re.search(r'\bAddress\s*[:=]\s*([^\n]+)', line, re.I)
                 if match and match.group(1).strip():
                     address_parts.append(match.group(1).strip())
 
-                # Collect following lines until we hit a label
-                for j in range(idx + 1, min(idx + 5, len(lines))):
+                # Collect following lines for full address (up to 6 lines)
+                for j in range(idx + 1, min(idx + 7, len(lines))):
                     next_line = lines[j].strip()
 
-                    # Stop at field labels
-                    if not next_line or re.match(r'^(?:Tel|Fax|Attended|Kind|Reference|PI|Code|Type|Date|Email|Phone|Del|Customer|Remarks|Payment|Delivery)', next_line, re.I):
+                    # Stop at empty lines or field labels
+                    if not next_line:
                         break
 
+                    if re.match(r'^(?:Tel|Fax|Attended|Kind|Reference|PI|Code|Type|Date|Email|Phone|Del|Customer|Cust|Remarks|Payment|Delivery|Ref|Invoice|Proforma)', next_line, re.I):
+                        break
+
+                    # Add address lines
                     address_parts.append(next_line)
 
                 if address_parts:
@@ -467,21 +477,31 @@ def parse_invoice_data(text: str) -> dict:
                     if address:
                         break
 
-        # Fallback: Look for city names followed by country if still no address
+        # Fallback: Look for city/country combinations if still no address
         if not address:
             for idx, line in enumerate(lines):
-                # Look for city names followed by country
-                if re.search(r'\b(DAR|DAR-ES-SALAAM|NAIROBI|KAMPALA)\b', line, re.I):
+                # Look for major city names (common in East Africa)
+                if re.search(r'\b(DAR|DAR-ES-SALAAM|NAIROBI|KAMPALA|KIGALI|MOMBASA|MOSHI|ARUSHA|DODOMA)\b', line, re.I):
                     address_parts = [line]
+
                     # Check next line(s) for country or additional address
-                    for j in range(idx + 1, min(idx + 3, len(lines))):
+                    for j in range(idx + 1, min(idx + 4, len(lines))):
                         next_line = lines[j].strip()
-                        if re.search(r'\b(TANZANIA|KENYA|UGANDA|RWANDA|BURUNDI)\b', next_line, re.I):
+
+                        # Stop at empty or label lines
+                        if not next_line or re.match(r'^(?:Tel|Fax|Email|Phone|Address|Reference|Code|Type|Date|Attended|Kind|Cust|Ref)', next_line, re.I):
+                            break
+
+                        # Include country or address lines
+                        if re.search(r'\b(TANZANIA|KENYA|UGANDA|RWANDA|BURUNDI|CONGO|MALAWI|ZAMBIA)\b', next_line, re.I):
                             address_parts.append(next_line)
                             break
-                        elif len(next_line) > 2 and not re.match(r'^(?:Tel|Fax|Email|Phone|Address|Reference|Code|Type|Date)', next_line, re.I):
+                        elif len(next_line) > 2 and (next_line.isupper() or re.search(r'\d', next_line)):
+                            # Address line or postal code
                             address_parts.append(next_line)
+                        else:
                             break
+
                     address = ' '.join(address_parts).strip()
                     if address:
                         break
@@ -774,16 +794,9 @@ def parse_invoice_data(text: str) -> dict:
         if not kind_attention or len(kind_attention) < 2:
             kind_attention = None
 
-    # Extract line items with improved detection for various formats
-    # The algorithm handles both:
-    # 1. Well-formatted PDFs: table with columns (Sr No, Code, Description, Type, Qty, Rate, Value)
-    # 2. Scrambled PDFs: descriptions, codes, and amounts scattered
-    #
-    # Strategy:
-    # - Find item section header (line with multiple item keywords)
-    # - Parse table rows looking for Sr No, item code, description, qty, rate, value
-    # - Group consecutive description lines with their numeric data
-    # - Avoid duplicates by tracking parsed items
+    # Extract line items with improved detection for various table formats
+    # Strategy: Group lines by item (main description line followed by continuation lines)
+    # Then parse structured data from each item group
     items = []
     item_section_started = False
     item_header_idx = -1
@@ -796,7 +809,7 @@ def parse_invoice_data(text: str) -> dict:
             continue
         line_data.append((idx, line_stripped))
 
-    # Find header and extract section with improved table detection
+    # Find header section
     for list_idx, (idx, line_stripped) in enumerate(line_data):
         # Detect item section header - line with multiple item-related keywords
         keyword_count = sum([
@@ -820,113 +833,120 @@ def parse_invoice_data(text: str) -> dict:
 
         # Parse item lines (after header starts)
         if item_section_started and list_idx > item_header_idx:
-            # Skip empty lines
             if not line_stripped:
                 continue
 
-            # Extract all numbers and their positions
+            # Extract all numbers from the line
             numbers = re.findall(r'[0-9\,]+\.?\d*', line_stripped)
             float_numbers = [float(n.replace(',', '')) for n in numbers] if numbers else []
 
-            # Extract text parts by removing numbers
-            text_only = re.sub(r'[0-9\,]+\.?\d*', '|', line_stripped)
-            text_parts = [p.strip() for p in text_only.split('|') if p.strip()]
+            # Detect unit/type indicators (PCS, NOS, UNT, HR, KG, etc.)
+            unit_match = re.search(r'\b(NOS|PCS|KG|HR|LTR|PIECES?|UNITS?|BOX|CASE|SETS?|PC|KIT|UNT)\b', line_stripped, re.I)
+            unit_value = unit_match.group(1).upper() if unit_match else None
 
-            # Skip if this line has no meaningful content
-            if not numbers and not text_parts:
-                continue
+            # Check if this line is likely a main item row (Sr No, Code, Description, amounts)
+            # It should have: some text (description) and numbers (qty, rate, value)
+            is_likely_item_row = len(line_stripped) > 5 and numbers and re.search(r'[A-Za-z]', line_stripped)
 
-            # Only process lines with BOTH text AND numbers (complete table rows)
-            # This ensures we capture actual data rows, not just field labels
-            if text_parts and numbers and len(line_stripped) > 5 and len(text_parts) > 0:
+            # Skip if this appears to be a continuation line (lines that are just units or percentages)
+            is_continuation_only = (unit_value or re.match(r'^\d+(?:\.\d+)?%?\s*$', line_stripped)) and len(float_numbers) <= 2
+
+            if is_likely_item_row and not is_continuation_only:
                 try:
-                    # Extract unit (NOS, PCS, HR, etc.) from the line
-                    unit_match = re.search(r'\b(NOS|PCS|KG|HR|LTR|PIECES?|UNITS?|BOX|CASE|SETS?|PC|KIT)\b', line_stripped, re.I)
-                    unit_value = unit_match.group(1).upper() if unit_match else None
+                    # Extract item code - typically appears as the first numeric field after Sr No
+                    item_code = None
+                    description_text = line_stripped
 
-                    # Build description by joining text parts
-                    # Keep all text parts as they likely represent the full description
-                    full_text = ' '.join(text_parts).strip()
+                    # Item codes can be 3-10 digits (examples: 21004, 21019, 2132004135, 3373119002)
+                    # They typically appear after the Sr No and before the description
+                    code_match = re.search(r'^[\s\d]*\s+(\d{3,10})\s+', line_stripped)
+                    if code_match:
+                        item_code = code_match.group(1)
+                        # Remove the Sr No and code from description for cleaner extraction
+                        description_text = re.sub(r'^\s*\d+\s+\d{3,10}\s+', '', line_stripped).strip()
+                    else:
+                        # Fallback: find first numeric value that looks like a code
+                        # This handles cases where spacing is different
+                        first_code_match = re.search(r'\b(\d{3,10})\b', line_stripped)
+                        if first_code_match:
+                            item_code = first_code_match.group(1)
 
-                    # Remove unit if found (it was extracted separately)
-                    if unit_value:
-                        full_text = re.sub(r'\b' + re.escape(unit_value) + r'\b', '', full_text, flags=re.I).strip()
+                    # Extract description (text portion, typically before large numeric values like rates/amounts)
+                    # Look for the last sequence of letters/words before significant numbers
+                    full_description = ''
+                    words = description_text.split()
+                    for i, word in enumerate(words):
+                        # Stop when we hit a large number (amounts typically > 1000 or have comma/decimal)
+                        if re.match(r'^\d+[\,\.]\d+', word) or (len(word) > 8 and re.match(r'^\d+', word)):
+                            # Stop here - everything before is description
+                            full_description = ' '.join(words[:i]).strip()
+                            break
+                        # Also check for unit keywords which typically come after description
+                        elif re.match(r'^(PCS|NOS|KG|HR|LTR|PIECES|UNITS|KIT|BOX|CASE|SETS|PC|UNT)$', word, re.I):
+                            # Unit found - description is everything before
+                            full_description = ' '.join(words[:i]).strip()
+                            break
 
-                    # Clean up excessive spaces
-                    full_text = ' '.join(full_text.split())
+                    # If we didn't find a stopping point, use all words with letters
+                    if not full_description:
+                        desc_words = [w for w in words if re.search(r'[A-Za-z]', w)]
+                        if desc_words:
+                            full_description = ' '.join(desc_words[:min(10, len(desc_words))]).strip()
+                        else:
+                            full_description = words[0] if words else ''
 
-                    # Skip only if description is essentially empty
-                    if not full_text:
+                    # Clean up description
+                    full_description = re.sub(r'\s+', ' ', full_description).strip()
+                    full_description = full_description[:255]
+
+                    # Skip if no meaningful description
+                    if not full_description or len(full_description) < 2:
                         continue
 
-                    # Initialize item
+                    # Parse quantities and amounts from the extracted numbers
                     item = {
-                        'description': full_text[:255],
+                        'description': full_description,
                         'qty': 1,
                         'unit': unit_value,
                         'value': None,
                         'rate': None,
-                        'code': None,
+                        'code': item_code,
                     }
 
-                    # Extract item code - look for 3-6 digit codes in numbers
-                    for fn in float_numbers:
-                        if fn == int(fn) and 100 <= fn <= 999999:
-                            # Check if it looks like an item code based on value ranges
-                            if (100 <= fn <= 999) or (3000 <= fn <= 50000) or (10000 <= fn <= 999999):
-                                item['code'] = str(int(fn))
-                                break
-
-                    # Also check text for item code
-                    if not item['code']:
-                        code_match = re.search(r'\b(\d{3,6})\b', line_stripped)
-                        if code_match:
-                            item['code'] = code_match.group(1)
-
-                    # Parse quantities and amounts based on number count
+                    # Parse numeric values based on count and patterns
                     max_num = max(float_numbers) if float_numbers else 0
 
                     if len(float_numbers) == 1:
-                        # Single number: the total value
+                        # Single number: the value
                         item['value'] = to_decimal(str(float_numbers[0]))
-                        item['rate'] = item['value']
                     elif len(float_numbers) == 2:
-                        # Two numbers: qty and value OR rate and value
+                        # Two numbers: likely qty and value
                         if float_numbers[0] < 100 and float_numbers[0] == int(float_numbers[0]):
                             item['qty'] = int(float_numbers[0])
                             item['value'] = to_decimal(str(float_numbers[1]))
-                            if item['qty'] > 0:
-                                item['rate'] = to_decimal(str(float_numbers[1] / float_numbers[0]))
                         elif float_numbers[1] < 100 and float_numbers[1] == int(float_numbers[1]):
                             item['qty'] = int(float_numbers[1])
                             item['value'] = to_decimal(str(float_numbers[0]))
-                            if item['qty'] > 0:
-                                item['rate'] = to_decimal(str(float_numbers[0] / float_numbers[1]))
                         else:
-                            # Neither is an obvious qty, assign largest as value
+                            # Neither obvious, largest is value
                             item['value'] = to_decimal(str(max_num))
                     elif len(float_numbers) >= 3:
-                        # 3+ numbers: Sr No, Code, Qty, Rate, Value pattern
-                        # Largest number is value
+                        # Multiple numbers: typically Sr#, Code, Qty, Rate, Value
                         item['value'] = to_decimal(str(max_num))
 
-                        # Find qty: smallest integer that is << max_num
+                        # Find quantity: small integer less than 100
                         qty_candidate = None
                         for fn in float_numbers:
-                            if fn == int(fn) and 0 < fn < 1000 and fn <= max_num / 10:
+                            if fn == int(fn) and 0 < fn < 100 and fn != max_num:
                                 qty_candidate = int(fn)
                                 break
 
                         if qty_candidate:
                             item['qty'] = qty_candidate
-                            # Rate = value / qty
-                            if qty_candidate > 0:
+                            if qty_candidate > 0 and max_num > 0:
                                 item['rate'] = to_decimal(str(max_num / qty_candidate))
-                        else:
-                            # No obvious qty, just set value
-                            item['qty'] = 1
 
-                    # Only add if we have description and (value or qty > 1)
+                    # Only add if we have meaningful data
                     if item.get('description') and (item.get('value') or item.get('qty', 1) > 1):
                         items.append(item)
 

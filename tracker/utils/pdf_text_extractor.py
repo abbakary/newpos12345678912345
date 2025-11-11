@@ -1101,14 +1101,32 @@ def extract_from_bytes(file_bytes, filename: str = '') -> dict:
         # Format items with all extracted fields
         items = []
         for item in parsed.get('items', []):
-            items.append({
-                'description': item.get('description', ''),
-                'qty': item.get('qty', 1),
-                'unit': item.get('unit'),
-                'code': item.get('code'),
-                'value': float(item.get('value', 0)) if item.get('value') else 0,
-                'rate': float(item.get('rate', 0)) if item.get('rate') else None,
-            })
+            try:
+                value = 0
+                if item.get('value'):
+                    try:
+                        value = float(item.get('value'))
+                    except (ValueError, TypeError):
+                        value = 0
+
+                rate = None
+                if item.get('rate'):
+                    try:
+                        rate = float(item.get('rate'))
+                    except (ValueError, TypeError):
+                        rate = None
+
+                items.append({
+                    'description': item.get('description', ''),
+                    'qty': item.get('qty', 1),
+                    'unit': item.get('unit'),
+                    'code': item.get('code'),
+                    'value': value,
+                    'rate': rate,
+                })
+            except Exception as e:
+                logger.warning(f"Error processing item data: {e}")
+                continue
 
         # Check if we extracted any meaningful data
         has_customer = bool(header.get('customer_name'))

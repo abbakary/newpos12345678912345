@@ -1563,11 +1563,18 @@ document.addEventListener('DOMContentLoaded', function(){
 <script>
   // Initialize extraction form modal for started orders
   document.addEventListener('DOMContentLoaded', function() {
-    const orderType = '{{ order.type|default:"service" }}';
-    const orderId = {{ order.id }};
+    // Create hidden inputs for extraction modal to access
+    const orderTypeInput = document.createElement('input');
+    orderTypeInput.type = 'hidden';
+    orderTypeInput.name = 'order_type';
+    orderTypeInput.value = '{{ order.type|default:"service" }}';
+    document.body.appendChild(orderTypeInput);
 
-    // Create modal instance with order type and ID
-    window.extractionFormModal = new ExtractionFormModal(orderType, orderId);
+    const orderIdInput = document.createElement('input');
+    orderIdInput.type = 'hidden';
+    orderIdInput.name = 'order_id';
+    orderIdInput.value = '{{ order.id }}';
+    document.body.appendChild(orderIdInput);
   });
 </script>
 

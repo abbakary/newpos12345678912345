@@ -1134,13 +1134,151 @@
                 });
               }
 
-              // Remove line item handler (delegated)
-              lineItemsContainer.addEventListener('click', function(e){
-                if (e.target.closest('.remove-item')){
-                  e.preventDefault();
-                  e.target.closest('.line-item-row').remove();
+              // ===== Customer Type Toggle =====
+              const customerTypeEl = document.getElementById('invoiceCustomerType');
+              const personalSubtypeWrapper = document.getElementById('personalSubtypeWrapper');
+              if (customerTypeEl){
+                function updateSubtypeVisibility(){
+                  if (customerTypeEl.value === 'personal'){
+                    personalSubtypeWrapper.style.display = 'block';
+                  } else {
+                    personalSubtypeWrapper.style.display = 'none';
+                  }
                 }
+                customerTypeEl.addEventListener('change', updateSubtypeVisibility);
+                updateSubtypeVisibility();
+              }
+
+              // ===== Order Type Selection and Service/Addon Loading =====
+              const orderTypeOptions = document.querySelectorAll('.order-type-option');
+              const serviceOrderSection = document.getElementById('serviceOrderSection');
+              const salesOrderSection = document.getElementById('salesOrderSection');
+              const serviceTypesContainer = document.getElementById('serviceTypesContainer');
+              const addonTypesContainer = document.getElementById('addonTypesContainer');
+              const serviceEtaHint = document.getElementById('serviceEtaHint');
+              const addonEtaHint = document.getElementById('addonEtaHint');
+
+              let serviceTypes = [];
+              let addons = [];
+
+              // Load service types and addons from API
+              async function loadServiceData(){
+                try {
+                  const response = await fetch('{% url "tracker:api_service_types" %}', {
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                  });
+                  const data = await response.json();
+                  serviceTypes = data.service_types || [];
+                  addons = data.service_addons || [];
+                  renderServiceCheckboxes();
+                  renderAddonCheckboxes();
+                } catch (err){
+                  console.error('Error loading service data:', err);
+                }
+              }
+
+              function renderServiceCheckboxes(){
+                serviceTypesContainer.innerHTML = '';
+                serviceTypes.forEach((svc, idx) => {
+                  const col = document.createElement('div');
+                  col.className = 'col-md-6 col-lg-4';
+                  col.innerHTML = `
+                    <div class="service-checkbox-card">
+                      <input class="form-check-input service-checkbox" type="checkbox" id="svc_chk_${idx}" name="service_selection_chk" value="${svc.name}" data-minutes="${svc.estimated_minutes}">
+                      <label class="service-checkbox-label" for="svc_chk_${idx}">
+                        <div class="service-checkbox-content">
+                          <div class="service-checkbox-name">${svc.name}</div>
+                          <div class="service-checkbox-duration"><i class="fa fa-clock-o me-1"></i>${svc.estimated_minutes} mins</div>
+                        </div>
+                      </label>
+                    </div>
+                  `;
+                  serviceTypesContainer.appendChild(col);
+                });
+                updateServiceEta();
+              }
+
+              function renderAddonCheckboxes(){
+                addonTypesContainer.innerHTML = '';
+                addons.forEach((addon, idx) => {
+                  const col = document.createElement('div');
+                  col.className = 'col-md-6 col-lg-4';
+                  col.innerHTML = `
+                    <div class="addon-checkbox-card">
+                      <input class="form-check-input addon-checkbox" type="checkbox" id="addon_chk_${idx}" name="tire_services_chk" value="${addon.name}" data-minutes="${addon.estimated_minutes}">
+                      <label class="addon-checkbox-label" for="addon_chk_${idx}">
+                        <div class="addon-checkbox-content">
+                          <div class="addon-checkbox-name">${addon.name}</div>
+                          <div class="addon-checkbox-duration"><i class="fa fa-clock-o me-1"></i>${addon.estimated_minutes} mins</div>
+                        </div>
+                      </label>
+                    </div>
+                  `;
+                  addonTypesContainer.appendChild(col);
+                });
+                updateAddonEta();
+              }
+
+              function updateServiceEta(){
+                const checked = document.querySelectorAll('.service-checkbox:checked');
+                let totalMinutes = 0;
+                checked.forEach(chk => {
+                  totalMinutes += parseInt(chk.dataset.minutes || 0);
+                });
+                const serviceSelection = Array.from(checked).map(c => c.value).join(',');
+                document.getElementById('serviceSelection').value = serviceSelection;
+                document.getElementById('estimatedDuration').value = totalMinutes;
+                if (totalMinutes > 0){
+                  serviceEtaHint.textContent = `Estimated duration: ${totalMinutes} minutes`;
+                  serviceEtaHint.style.display = 'block';
+                } else {
+                  serviceEtaHint.style.display = 'none';
+                }
+              }
+
+              function updateAddonEta(){
+                const checked = document.querySelectorAll('.addon-checkbox:checked');
+                let totalMinutes = 0;
+                checked.forEach(chk => {
+                  totalMinutes += parseInt(chk.dataset.minutes || 0);
+                });
+                const addonSelection = Array.from(checked).map(c => c.value).join(',');
+                document.getElementById('serviceSelection').value = addonSelection;
+                document.getElementById('estimatedDuration').value = totalMinutes;
+                if (totalMinutes > 0){
+                  addonEtaHint.textContent = `Estimated duration: ${totalMinutes} minutes`;
+                  addonEtaHint.style.display = 'block';
+                } else {
+                  addonEtaHint.style.display = 'none';
+                }
+              }
+
+              orderTypeOptions.forEach(option => {
+                option.addEventListener('change', function(){
+                  if (this.value === 'service'){
+                    serviceOrderSection.style.display = 'block';
+                    salesOrderSection.style.display = 'none';
+                  } else {
+                    serviceOrderSection.style.display = 'none';
+                    salesOrderSection.style.display = 'block';
+                  }
+                });
               });
+
+              // Attach listeners to service/addon checkboxes
+              serviceTypesContainer.addEventListener('change', updateServiceEta);
+              addonTypesContainer.addEventListener('change', updateAddonEta);
+
+              // Load service data on modal open
+              loadServiceData();
+
+              // Remove line item handler (delegated) - REMOVED since we're not using line items anymore
+              // lineItemsContainer.addEventListener('click', function(e){
+              //   if (e.target.closest('.remove-item')){
+              //     e.preventDefault();
+              //     e.target.closest('.line-item-row').remove();
+              //   }
+              // });
 
               // Handle manual form submission
               if (manualForm){
